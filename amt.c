@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <assert.h>
-#include <timer.h>
+#include <time.h>
 #ifdef HAVE_ARPA_INET_H
 # include <arpa/inet.h>
 #endif
@@ -206,7 +206,7 @@ typedef struct _access_sys_t
     char *relay;
     char relayDisco[INET_ADDRSTRLEN];
 
-    vlc_timer_t updateTimer; //TODO
+    // vlc_timer_t updateTimer; //TODO
 
     /* Mulicast group and source */
     struct sockaddr_in mcastGroupAddr;
@@ -237,8 +237,8 @@ typedef struct _access_sys_t
 } access_sys_t;
 
 /* Standard open/close functions */
-static int  Open (vlc_object_t *);
-static void Close (vlc_object_t *);
+// static int  Open (vlc_object_t *);
+// static void Close (vlc_object_t *);
 
 /* Utility functions */
 static unsigned short get_checksum( unsigned short *buffer, int nLen );
@@ -263,12 +263,14 @@ static void make_ip_header( amt_ip_alert_t *p_ipHead );
 /*****************************************************************************
  * Local prototypes
  *****************************************************************************/
-static block_t *BlockAMT( stream_t *, bool * );
+// static block_t *BlockAMT( stream_t *, bool * );
 
 /*****************************************************************************
- * Open: Open a connection to the multicast feed
+ * Setup: Setup a connection to the multicast feed
+ * Sets up the server info, socket info, parsing URL etc
  *****************************************************************************/
-static int Open( vlc_object_t *p_this )
+// static int Setup( vlc_object_t *p_this )
+static int Setup( )
 {
     stream_t            *p_access = (stream_t*) p_this;
     access_sys_t        *sys = NULL;
@@ -277,22 +279,23 @@ static int Open( vlc_object_t *p_this )
     char                *psz_name = NULL, *saveptr, *psz_strtok_r;
     char                 mcastSrc_buf[INET_ADDRSTRLEN], mcastGroup_buf[INET_ADDRSTRLEN];
     const char          *mcastSrc, *mcastGroup;
-    int                  i_bind_port = 1234, i_server_port = 0, VLC_ret = VLC_SUCCESS, response;
-    vlc_url_t            url = { 0 };
+    int                  i_bind_port = 1234, i_server_port = 0, response;
+    // vlc_url_t            url = { 0 };
 
-    if( p_access->b_preparsing )
-        return VLC_EGENERIC;
+    // if( p_access->b_preparsing )
+    //     return VLC_EGENERIC;
 
     /* Set up p_access */
-    ACCESS_SET_CALLBACKS( NULL, BlockAMT, Control, NULL );
+    // ACCESS_SET_CALLBACKS( NULL, BlockAMT, Control, NULL );
 
-    if( !p_access->psz_location )
-        return VLC_EGENERIC;
+    // if( !p_access->psz_location )
+    //     return VLC_EGENERIC;
 
     /* Allocate the structure for holding AMT info and zeroize it */
-    sys = vlc_obj_calloc( p_this, 1, sizeof( *sys ) );
-    if( unlikely( sys == NULL ) )
-        return VLC_ENOMEM;
+    // sys = vlc_obj_calloc( p_this, 1, sizeof( *sys ) );
+    sys = calloc( p_this, 1, sizeof( *sys ) );
+    // if( unlikely( sys == NULL ) )
+    //     return VLC_ENOMEM;
 
     /* The standard MPEG-2 transport is 188 bytes.  7 packets fit into a standard 1500 byte Ethernet frame */
     sys->mtu = 7 * 188;
@@ -304,18 +307,18 @@ static int Open( vlc_object_t *p_this )
     psz_name = strdup( p_access->psz_location );
     if ( unlikely( psz_name == NULL ) )
     {
-        VLC_ret = VLC_EGENERIC;
+        // VLC_ret = VLC_EGENERIC;
         goto cleanup;
     }
 
     /* Parse psz_name syntax :
      * [serveraddr[:serverport]][@[bindaddr]:[bindport]] */
-    if( vlc_UrlParse( &url, p_access->psz_url ) != 0 ) //TODO
-    {
-        msg_Err( p_access, "Invalid URL: %s", p_access->psz_url );
-        VLC_ret = VLC_EGENERIC;
-        goto cleanup;
-    }
+    // if( vlc_UrlParse( &url, p_access->psz_url ) != 0 ) //TODO
+    // {
+    //     msg_Err( p_access, "Invalid URL: %s", p_access->psz_url );
+    //     VLC_ret = VLC_EGENERIC;
+    //     goto cleanup;
+    // }
 
     /* Determining the multicast source and group depends on the URL provided */
     /*                                                                        */
@@ -351,13 +354,13 @@ static int Open( vlc_object_t *p_this )
     hints.ai_socktype = SOCK_DGRAM;
 
     /* Retrieve list of multicast addresses matching the multicast group identifier */
-    response = vlc_getaddrinfo( url.psz_host, AMT_PORT, &hints, &serverinfo );  //TODO
+    response = getaddrinfo( url.psz_host, AMT_PORT, &hints, &serverinfo );  //TODO
 
     /* If an error returned print reason and exit */
     if( response != 0 )
     {
         msg_Err( p_access, "Could not find multicast group %s, reason: %s", url.psz_host, gai_strerror(response) );
-        VLC_ret = VLC_EGENERIC;
+        // VLC_ret = VLC_EGENERIC;
         goto cleanup;
     }
 
@@ -387,7 +390,7 @@ static int Open( vlc_object_t *p_this )
     if ( !psz_strtok_r )
     {
         msg_Err( p_access, "Could not parse location %s", psz_name);
-        VLC_ret = VLC_EGENERIC;
+        // VLC_ret = VLC_EGENERIC;
         goto cleanup;
     }
 
@@ -403,13 +406,13 @@ static int Open( vlc_object_t *p_this )
     }
 
     /* retrieve list of source addresses matching the multicast source identifier */
-    response = vlc_getaddrinfo( mcastSrc, AMT_PORT, &hints, &serverinfo ); //TODO
+    response = getaddrinfo( mcastSrc, AMT_PORT, &hints, &serverinfo ); //TODO
 
     /* If an error returned print reason and exit */
     if( response != 0 )
     {
         msg_Err( p_access, "Could not find multicast source %s, reason: %s", mcastSrc, gai_strerror(response) );
-        VLC_ret = VLC_EGENERIC; //TODO
+        // VLC_ret = VLC_EGENERIC; //TODO
         goto cleanup;
     }
 
@@ -433,7 +436,7 @@ static int Open( vlc_object_t *p_this )
     if( unlikely( sys->relay == NULL ) )
     {
         msg_Err( p_access, "No relay anycast or unicast address specified." );
-        VLC_ret = VLC_EGENERIC;
+        // VLC_ret = VLC_EGENERIC;
         goto cleanup;
     }
 
@@ -445,16 +448,16 @@ static int Open( vlc_object_t *p_this )
                              mcastSrc, i_server_port, IPPROTO_UDP );
     if( sys->fd == -1 )
     {
-        VLC_ret = VLC_EGENERIC;
+        // VLC_ret = VLC_EGENERIC;
         goto cleanup;
     }
 
-    int ret = vlc_timer_create( &sys->updateTimer, amt_update_timer_cb, p_access );
-    if( ret != 0 )
-    {
-        VLC_ret = VLC_EGENERIC;
-        goto cleanup;
-    }
+    // int ret = vlc_timer_create( &sys->updateTimer, amt_update_timer_cb, p_access );
+    // if( ret != 0 )
+    // {
+    //     VLC_ret = VLC_EGENERIC;
+    //     goto cleanup;
+    // }
 
     sys->timeout = var_InheritInteger( p_access, "amt-native-timeout");
     if( sys->timeout > 0)
@@ -465,18 +468,18 @@ static int Open( vlc_object_t *p_this )
 cleanup: /* fall through */
 
     free( psz_name );
-    vlc_UrlClean( &url );   //TODO
+    // vlc_UrlClean( &url );   //TODO
     if( serverinfo )
         freeaddrinfo( serverinfo );
 
-    if ( VLC_ret != VLC_SUCCESS )
-    {
-        free( sys->relay );
-        if( sys->fd != -1 )
-            net_Close( sys->fd );
-    }
+    // if ( VLC_ret != VLC_SUCCESS )
+    // {
+    //     free( sys->relay );
+    //     if( sys->fd != -1 )
+    //         net_Close( sys->fd );
+    // }
 
-    return VLC_ret;
+    return 0;
 }
 
 /*****************************************************************************
@@ -487,7 +490,7 @@ static void Close( vlc_object_t *p_this )
     stream_t     *p_access = (stream_t*)p_this;
     access_sys_t *sys = p_access->p_sys;
 
-    vlc_timer_destroy( sys->updateTimer );
+    // vlc_timer_destroy( sys->updateTimer ); TODO
 
     /* If using AMT tunneling send leave message and free the relay addresses */
     if ( sys->tryAMT )
@@ -534,7 +537,7 @@ static block_t *BlockAMT(stream_t *p_access, bool *restrict eof)
         ufd[0].fd = sys->fd;   /* Native multicast file descriptor */
     ufd[0].events = POLLIN;
 
-    switch (vlc_poll_i11e(ufd, 1, sys->timeout))    //TODO
+    switch (poll(ufd, 1, sys->timeout))    //TODO
     {
         case 0:
             if( !sys->tryAMT )
@@ -616,7 +619,7 @@ static bool open_amt_tunnel( stream_t *p_access )
     sys->tryAMT = true;
 
     /* Retrieve list of addresses matching the AMT relay */
-    int response = vlc_getaddrinfo( sys->relay, AMT_PORT, &hints, &serverinfo );    //TODO
+    int response = getaddrinfo( sys->relay, AMT_PORT, &hints, &serverinfo );    //TODO
 
     /* If an error returned print reason and exit */
     if( response != 0 )
@@ -698,7 +701,7 @@ static bool open_amt_tunnel( stream_t *p_access )
 
         /* If started, the timer must be stopped before trying the next server
          * in order to avoid data-race with sys->sAMT. */
-        vlc_timer_disarm( sys->updateTimer );   //TODO
+        // vlc_timer_disarm( sys->updateTimer );   //TODO
 
         amt_send_mem_update( p_access, sys->relayDisco, false );
         bool eof=false;
@@ -716,8 +719,8 @@ static bool open_amt_tunnel( stream_t *p_access )
             msg_Dbg( p_access, "Got UDP packet from multicast group via AMT relay %s, continuing...", relay_ip );
 
             /* Arm IGMP timer once we've confirmed we are getting packets */
-            vlc_timer_schedule( sys->updateTimer, false,
-                        VLC_TICK_FROM_SEC( sys->relay_igmp_query.qqic ), VLC_TICK_FROM_SEC( sys->relay_igmp_query.qqic ) );     //TODO
+            // vlc_timer_schedule( sys->updateTimer, false,
+            //             VLC_TICK_FROM_SEC( sys->relay_igmp_query.qqic ), VLC_TICK_FROM_SEC( sys->relay_igmp_query.qqic ) );     //TODO
 
             break;   /* found an active server sending UDP packets, so exit loop */
         }
@@ -735,7 +738,7 @@ static bool open_amt_tunnel( stream_t *p_access )
     return true;
 
 error:
-    vlc_timer_disarm( sys->updateTimer );       //TODO
+    // vlc_timer_disarm( sys->updateTimer );       //TODO
     if( serverinfo )
         freeaddrinfo( serverinfo );
     return false;
@@ -1065,7 +1068,7 @@ static bool amt_rcv_relay_adv( stream_t *p_access )
     ufd[0].fd = sys->sAMT;
     ufd[0].events = POLLIN;
 
-    switch( vlc_poll_i11e(ufd, 1, sys->timeout) )
+    switch( poll(ufd, 1, sys->timeout) )
     {
         case 0:
             msg_Err(p_access, "AMT relay advertisement receive time-out");
@@ -1291,8 +1294,8 @@ static void amt_update_timer_cb( void *data )
 
     /* Arms the timer again for a single shot from this callback. That way, the
      * time spent in amt_send_mem_update() is taken into consideration. */
-    vlc_timer_schedule( sys->updateTimer, false,
-                        VLC_TICK_FROM_SEC( sys->relay_igmp_query.qqic ), 0 );
+    // vlc_timer_schedule( sys->updateTimer, false,
+    //                     VLC_TICK_FROM_SEC( sys->relay_igmp_query.qqic ), 0 );
 }
 
 int main(int argc, char *argv[]) {
@@ -1304,6 +1307,5 @@ int main(int argc, char *argv[]) {
     // group_addr = 232.162.250.138
     // src_addr = 162.250.138.201
     // 
-    
-    
+    open_amt_tunnel()
 }
