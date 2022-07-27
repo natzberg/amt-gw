@@ -270,9 +270,9 @@ static void make_ip_header( amt_ip_alert_t *p_ipHead );
  * Sets up the server info, socket info, parsing URL etc
  *****************************************************************************/
 // static int Setup( vlc_object_t *p_this )
-static int Setup( )
+static int Setup()
 {
-    stream_t            *p_access = (stream_t*) p_this;
+    // stream_t            *p_access = (stream_t*) p_this;
     access_sys_t        *sys = NULL;
     struct addrinfo      hints, *serverinfo = NULL;
     struct sockaddr_in  *server_addr;
@@ -300,7 +300,7 @@ static int Setup( )
     /* The standard MPEG-2 transport is 188 bytes.  7 packets fit into a standard 1500 byte Ethernet frame */
     sys->mtu = 7 * 188;
 
-    p_access->p_sys = sys;
+    // p_access->p_sys = sys;
 
     sys->fd = sys->sAMT = sys->sQuery = -1;
 
@@ -315,7 +315,7 @@ static int Setup( )
      * [serveraddr[:serverport]][@[bindaddr]:[bindport]] */
     // if( vlc_UrlParse( &url, p_access->psz_url ) != 0 ) //TODO
     // {
-    //     msg_Err( p_access, "Invalid URL: %s", p_access->psz_url );
+    //     fprintf( stderr, "Invalid URL: %s", p_access->psz_url );
     //     VLC_ret = VLC_EGENERIC;
     //     goto cleanup;
     // }
@@ -359,7 +359,7 @@ static int Setup( )
     /* If an error returned print reason and exit */
     if( response != 0 )
     {
-        msg_Err( p_access, "Could not find multicast group %s, reason: %s", url.psz_host, gai_strerror(response) );
+        fprintf( stderr, "Could not find multicast group %s, reason: %s", url.psz_host, gai_strerror(response) );
         // VLC_ret = VLC_EGENERIC;
         goto cleanup;
     }
@@ -369,7 +369,7 @@ static int Setup( )
     if( unlikely( inet_ntop(AF_INET, &(server_addr->sin_addr), mcastGroup_buf, INET_ADDRSTRLEN) == NULL ) )
     {
         int errConv = errno;
-        msg_Err(p_access, "Could not convert binary socket address to string: %s", gai_strerror(errConv));
+        fprintf(stderr, "Could not convert binary socket address to string: %s", gai_strerror(errConv));
         goto cleanup;
     }
     mcastGroup = mcastGroup_buf;
@@ -389,7 +389,7 @@ static int Setup( )
     psz_strtok_r = strtok_r( psz_name, "@", &saveptr );
     if ( !psz_strtok_r )
     {
-        msg_Err( p_access, "Could not parse location %s", psz_name);
+        fprintf( stderr, "Could not parse location %s", psz_name);
         // VLC_ret = VLC_EGENERIC;
         goto cleanup;
     }
@@ -411,7 +411,7 @@ static int Setup( )
     /* If an error returned print reason and exit */
     if( response != 0 )
     {
-        msg_Err( p_access, "Could not find multicast source %s, reason: %s", mcastSrc, gai_strerror(response) );
+        fprintf( stderr, "Could not find multicast source %s, reason: %s", mcastSrc, gai_strerror(response) );
         // VLC_ret = VLC_EGENERIC; //TODO
         goto cleanup;
     }
@@ -421,7 +421,7 @@ static int Setup( )
     if( unlikely( inet_ntop(AF_INET, &(server_addr->sin_addr), mcastSrc_buf, INET_ADDRSTRLEN) == NULL ) )
     {
         int errConv = errno;
-        msg_Err(p_access, "Could not binary socket address to string: %s", gai_strerror(errConv));
+        fprintf(stderr, "Could not binary socket address to string: %s", gai_strerror(errConv));
         goto cleanup;
     }
     mcastSrc = mcastSrc_buf;
@@ -435,7 +435,7 @@ static int Setup( )
     sys->relay = var_InheritString( p_access, "amt-relay" );
     if( unlikely( sys->relay == NULL ) )
     {
-        msg_Err( p_access, "No relay anycast or unicast address specified." );
+        fprintf( stderr, "No relay anycast or unicast address specified." );
         // VLC_ret = VLC_EGENERIC;
         goto cleanup;
     }
@@ -542,7 +542,7 @@ static block_t *BlockAMT(stream_t *p_access, bool *restrict eof)
         case 0:
             if( !sys->tryAMT )
             {
-                msg_Err(p_access, "Native multicast receive time-out");
+                fprintf(stderr, "Native multicast receive time-out");
                 if( !open_amt_tunnel( p_access ) )
                     goto error;
                 break;
@@ -572,7 +572,7 @@ static block_t *BlockAMT(stream_t *p_access, bool *restrict eof)
         /* If the length received is less than the AMT tunnel header then it's truncated */
         if( len < tunnel )
         {
-            msg_Err(p_access, "%zd bytes packet truncated (MTU was %zd)", len, sys->mtu);
+            fprintf(stderr, "%zd bytes packet truncated (MTU was %zd)", len, sys->mtu);
             pkt->i_flags |= BLOCK_FLAG_CORRUPTED;
         }
 
@@ -624,7 +624,7 @@ static bool open_amt_tunnel( stream_t *p_access )
     /* If an error returned print reason and exit */
     if( response != 0 )
     {
-        msg_Err( p_access, "Could not find relay %s, reason: %s", sys->relay, gai_strerror(response) );
+        fprintf( stderr, "Could not find relay %s, reason: %s", sys->relay, gai_strerror(response) );
         goto error;
     }
 
@@ -638,7 +638,7 @@ static bool open_amt_tunnel( stream_t *p_access )
         if( unlikely( inet_ntop(AF_INET, &(server_addr->sin_addr), relay_ip, INET_ADDRSTRLEN) == NULL ) )
         {
             int errConv = errno;
-            msg_Err(p_access, "Could not convert relay ip to binary representation: %s", gai_strerror(errConv));
+            fprintf(stderr, "Could not convert relay ip to binary representation: %s", gai_strerror(errConv));
             goto error;
         }
 
@@ -663,7 +663,7 @@ static bool open_amt_tunnel( stream_t *p_access )
 
         if( !amt_rcv_relay_adv( p_access ) )
         {
-            msg_Err( p_access, "Error receiving AMT relay advertisement msg from %s, skipping", relay_ip );
+            fprintf( stderr, "Error receiving AMT relay advertisement msg from %s, skipping", relay_ip );
             goto error;
         }
         msg_Dbg( p_access, "Received AMT relay advertisement from %s", relay_ip );
@@ -673,7 +673,7 @@ static bool open_amt_tunnel( stream_t *p_access )
 
         if( !amt_rcv_relay_mem_query( p_access ) )
         {
-            msg_Err( p_access, "Could not receive AMT relay membership query from %s, reason: %s", relay_ip, strerror(errno));
+            fprintf( stderr, "Could not receive AMT relay membership query from %s, reason: %s", relay_ip, strerror(errno));
             goto error;
         }
         msg_Dbg( p_access, "Received AMT relay membership query from %s", relay_ip );
@@ -683,7 +683,7 @@ static bool open_amt_tunnel( stream_t *p_access )
         {
             if( amt_joinSSM_group( p_access ) != 0 )
             {
-                msg_Err( p_access, "Error joining SSM %s", strerror(errno) );
+                fprintf( stderr, "Error joining SSM %s", strerror(errno) );
                 goto error;
             }
             msg_Dbg( p_access, "Joined SSM" );
@@ -693,7 +693,7 @@ static bool open_amt_tunnel( stream_t *p_access )
         else {
             if( amt_joinASM_group( p_access ) != 0 )
             {
-                msg_Err( p_access, "Error joining ASM %s", strerror(errno) );
+                fprintf( stderr, "Error joining ASM %s", strerror(errno) );
                 goto error;
             }
             msg_Dbg( p_access, "Joined ASM group" );
@@ -710,7 +710,7 @@ static bool open_amt_tunnel( stream_t *p_access )
         /* Confirm that you can pull a UDP packet from the socket */
         if ( !(pkt = BlockAMT( p_access, &eof )) )
         {
-            msg_Err( p_access, "Unable to receive UDP packet from AMT relay %s for multicast group", relay_ip );
+            fprintf( stderr, "Unable to receive UDP packet from AMT relay %s for multicast group", relay_ip );
             continue;
         }
         else
@@ -729,7 +729,7 @@ static bool open_amt_tunnel( stream_t *p_access )
     /* if server is NULL then no AMT relay is responding */
     if (server == NULL)
     {
-        msg_Err( p_access, "No AMT servers responding" );
+        fprintf( stderr, "No AMT servers responding" );
         goto error;
     }
 
@@ -818,14 +818,14 @@ static int amt_sockets_init( stream_t *p_access )
     sys->sAMT = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
     if( sys->sAMT == -1 )
     {
-        msg_Err( p_access, "Failed to create UDP socket" );
+        fprintf( stderr, "Failed to create UDP socket" );
         goto error;
     }
 
     res = setsockopt(sys->sAMT, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
     if(res < 0)
     {
-        msg_Err( p_access, "Couldn't make socket reusable");
+        fprintf( stderr, "Couldn't make socket reusable");
         goto error;
     }
 
@@ -835,14 +835,14 @@ static int amt_sockets_init( stream_t *p_access )
 
     if( bind(sys->sAMT, (struct sockaddr *)&rcvAddr, sizeof(rcvAddr) ) != 0 )
     {
-        msg_Err( p_access, "Failed to bind UDP socket error: %s", strerror(errno) );
+        fprintf( stderr, "Failed to bind UDP socket error: %s", strerror(errno) );
         goto error;
     }
 
     sys->sQuery = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
     if( sys->sQuery == -1 )
     {
-        msg_Err( p_access, "Failed to create query socket" );
+        fprintf( stderr, "Failed to create query socket" );
         goto error;
     }
 
@@ -856,7 +856,7 @@ static int amt_sockets_init( stream_t *p_access )
 
     if( bind(sys->sQuery, (struct sockaddr *)&stLocalAddr, sizeof(struct sockaddr) ) != 0 )
     {
-        msg_Err( p_access, "Failed to bind query socket" );
+        fprintf( stderr, "Failed to bind query socket" );
         goto error;
     }
 
@@ -915,7 +915,7 @@ static void amt_send_relay_discovery_msg( stream_t *p_access, char *relay_ip )
             (struct sockaddr *)&sys->relayDiscoAddr, sizeof(struct sockaddr) );
 
     if( nRet < 0)
-        msg_Err( p_access, "Sendto failed to %s with error %d.", relay_ip, errno);
+        fprintf( stderr, "Sendto failed to %s with error %d.", relay_ip, errno);
 }
 
 /**
@@ -966,7 +966,7 @@ static void amt_send_relay_request( stream_t *p_access, char *relay_ip )
     nRet = send( sys->sAMT, chaSendBuffer, sizeof(chaSendBuffer), 0 );
 
     if( nRet < 0 )
-        msg_Err(p_access, "Error sending relay request to %s error: %s", relay_ip, strerror(errno) );
+        fprintf(stderr, "Error sending relay request to %s error: %s", relay_ip, strerror(errno) );
 }
 
 /*
@@ -1002,7 +1002,7 @@ static void amt_send_mem_update( stream_t *p_access, char *relay_ip, bool leave)
     int res = inet_pton( AF_INET, MCAST_ALLHOSTS, &(temp.sin_addr) );
     if( res != 1 )
     {
-        //msg_Err(p_access, "Could not convert all hosts multicast address: %s", gai_strerror(errno) );
+        //fprintf(stderr, "Could not convert all hosts multicast address: %s", gai_strerror(errno) );
         return;
     }
     p_ipHead.destAddr = temp.sin_addr.s_addr;
@@ -1071,7 +1071,7 @@ static bool amt_rcv_relay_adv( stream_t *p_access )
     switch( poll(ufd, 1, sys->timeout) )
     {
         case 0:
-            msg_Err(p_access, "AMT relay advertisement receive time-out");
+            fprintf(stderr, "AMT relay advertisement receive time-out");
             /* fall through */
         case -1:
             return false;
@@ -1083,7 +1083,7 @@ static bool amt_rcv_relay_adv( stream_t *p_access )
 
     if (len < 0)
     {
-        msg_Err(p_access, "Received message length less than zero");
+        fprintf(stderr, "Received message length less than zero");
         return false;
     }
 
@@ -1097,14 +1097,14 @@ static bool amt_rcv_relay_adv( stream_t *p_access )
     memcpy( &relay_adv_msg.type, &pkt[0], MSG_TYPE_LEN );
     if( relay_adv_msg.type != AMT_RELAY_ADV )
     {
-        msg_Err( p_access, "Received message not an AMT relay advertisement, ignoring. ");
+        fprintf( stderr, "Received message not an AMT relay advertisement, ignoring. ");
         return false;
     }
 
     memcpy( &relay_adv_msg.ulRcvNonce, &pkt[NONCE_LEN], NONCE_LEN );
     if( sys->glob_ulNonce != relay_adv_msg.ulRcvNonce )
     {
-        msg_Err( p_access, "Discovery nonces differ! currNonce:%x rcvd%x", sys->glob_ulNonce, (uint32_t) ntohl(relay_adv_msg.ulRcvNonce) );
+        fprintf( stderr, "Discovery nonces differ! currNonce:%x rcvd%x", sys->glob_ulNonce, (uint32_t) ntohl(relay_adv_msg.ulRcvNonce) );
         return false;
     }
 
@@ -1120,7 +1120,7 @@ static bool amt_rcv_relay_adv( stream_t *p_access )
     int nRet = connect( sys->sAMT, (struct sockaddr *)&relayAddr, sizeof(relayAddr) );
     if( nRet < 0 )
     {
-        msg_Err( p_access, "Error connecting AMT UDP socket: %s", strerror(errno) );
+        fprintf( stderr, "Error connecting AMT UDP socket: %s", strerror(errno) );
         return false;
     }
 
@@ -1166,7 +1166,7 @@ static bool amt_rcv_relay_mem_query( stream_t *p_access )
     switch( poll(ufd, 1, sys->timeout) )
     {
         case 0:
-            msg_Err(p_access, "AMT relay membership query receive time-out");
+            fprintf(stderr, "AMT relay membership query receive time-out");
             /* fall through */
         case -1:
             return false;
@@ -1176,7 +1176,7 @@ static bool amt_rcv_relay_mem_query( stream_t *p_access )
 
     if (len < 0)
     {
-        msg_Err(p_access, "Received relay membership query message length less than zero");
+        fprintf(stderr, "Received relay membership query message length less than zero");
         return false;
     }
 
