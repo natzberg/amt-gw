@@ -346,7 +346,7 @@ static int Setup()
     if( url.i_port > 0 )
         i_bind_port = url.i_port;
 
-    msg_Dbg( p_access, "Opening multicast: %s:%d local=%s:%d", url.psz_host, i_server_port, url.psz_path, i_bind_port );
+    fprintf( stdout, "Opening multicast: %s:%d local=%s:%d", url.psz_host, i_server_port, url.psz_path, i_bind_port );
 
     /* Initialize hints prior to call to vlc_getaddrinfo with either IP address or FQDN */
     memset( &hints, 0, sizeof( hints ));
@@ -383,7 +383,7 @@ static int Setup()
 
     /* Store string representation */
 
-    msg_Dbg( p_access, "Setting multicast group address to %s", mcastGroup);
+    fprintf( stdout, "Setting multicast group address to %s", mcastGroup);
 
     /* Extract the source from the URL, or the multicast group when no source is provided */
     psz_strtok_r = strtok_r( psz_name, "@", &saveptr );
@@ -402,7 +402,7 @@ static int Setup()
     {
         mcastSrc = MCAST_ANYCAST;
         sys->mcastSrcAddr.sin_addr.s_addr = 0;
-        msg_Dbg( p_access, "No multicast source address specified, trying ASM...");
+        fprintf( stdout, "No multicast source address specified, trying ASM...");
     }
 
     /* retrieve list of source addresses matching the multicast source identifier */
@@ -429,7 +429,7 @@ static int Setup()
     /* Store the binary socket representation of multicast source address */
     sys->mcastSrcAddr = *server_addr;
 
-    msg_Dbg( p_access, "Setting multicast source address to %s", mcastSrc);
+    fprintf( stdout, "Setting multicast source address to %s", mcastSrc);
 
     /* Pull the AMT relay address from the settings */
     sys->relay = var_InheritString( p_access, "amt-relay" );
@@ -440,7 +440,7 @@ static int Setup()
         goto cleanup;
     }
 
-    msg_Dbg( p_access, "Addresses: mcastGroup: %s mcastSrc: %s relay: %s", \
+    fprintf( stdout, "Addresses: mcastGroup: %s mcastSrc: %s relay: %s", \
              mcastGroup, mcastSrc, sys->relay);
 
     /* Native multicast file descriptor */
@@ -615,7 +615,7 @@ static bool open_amt_tunnel( stream_t *p_access )
     hints.ai_family = AF_INET;  /* Setting to AF_UNSPEC accepts both IPv4 and IPv6 */
     hints.ai_socktype = SOCK_DGRAM;
 
-    msg_Dbg( p_access, "Attempting AMT to %s...", sys->relay);
+    fprintf( stdout, "Attempting AMT to %s...", sys->relay);
     sys->tryAMT = true;
 
     /* Retrieve list of addresses matching the AMT relay */
@@ -649,7 +649,7 @@ static bool open_amt_tunnel( stream_t *p_access )
             goto error;
         }
 
-        msg_Dbg( p_access, "Trying AMT Server: %s", sys->relayDisco);
+        fprintf( stdout, "Trying AMT Server: %s", sys->relayDisco);
 
         /* Store the binary representation */
         sys->relayDiscoAddr.sin_addr = server_addr->sin_addr;
@@ -659,24 +659,24 @@ static bool open_amt_tunnel( stream_t *p_access )
 
         /* Negotiate with AMT relay and confirm you can pull a UDP packet  */
         amt_send_relay_discovery_msg( p_access, relay_ip );
-        msg_Dbg( p_access, "Sent relay AMT discovery message to %s", relay_ip );
+        fprintf( stdout, "Sent relay AMT discovery message to %s", relay_ip );
 
         if( !amt_rcv_relay_adv( p_access ) )
         {
             fprintf( stderr, "Error receiving AMT relay advertisement msg from %s, skipping", relay_ip );
             goto error;
         }
-        msg_Dbg( p_access, "Received AMT relay advertisement from %s", relay_ip );
+        fprintf( stdout, "Received AMT relay advertisement from %s", relay_ip );
 
         amt_send_relay_request( p_access, relay_ip );
-        msg_Dbg( p_access, "Sent AMT relay request message to %s", relay_ip );
+        fprintf( stdout, "Sent AMT relay request message to %s", relay_ip );
 
         if( !amt_rcv_relay_mem_query( p_access ) )
         {
             fprintf( stderr, "Could not receive AMT relay membership query from %s, reason: %s", relay_ip, strerror(errno));
             goto error;
         }
-        msg_Dbg( p_access, "Received AMT relay membership query from %s", relay_ip );
+        fprintf( stdout, "Received AMT relay membership query from %s", relay_ip );
 
         /* If single source multicast send SSM join */
         if( sys->mcastSrcAddr.sin_addr.s_addr )
@@ -686,7 +686,7 @@ static bool open_amt_tunnel( stream_t *p_access )
                 fprintf( stderr, "Error joining SSM %s", strerror(errno) );
                 goto error;
             }
-            msg_Dbg( p_access, "Joined SSM" );
+            fprintf( stdout, "Joined SSM" );
         }
 
         /* If any source multicast send ASM join */
@@ -696,7 +696,7 @@ static bool open_amt_tunnel( stream_t *p_access )
                 fprintf( stderr, "Error joining ASM %s", strerror(errno) );
                 goto error;
             }
-            msg_Dbg( p_access, "Joined ASM group" );
+            fprintf( stdout, "Joined ASM group" );
         }
 
         /* If started, the timer must be stopped before trying the next server
@@ -716,7 +716,7 @@ static bool open_amt_tunnel( stream_t *p_access )
         else
         {
             block_Release( pkt );
-            msg_Dbg( p_access, "Got UDP packet from multicast group via AMT relay %s, continuing...", relay_ip );
+            fprintf( stdout, "Got UDP packet from multicast group via AMT relay %s, continuing...", relay_ip );
 
             /* Arm IGMP timer once we've confirmed we are getting packets */
             // vlc_timer_schedule( sys->updateTimer, false,
@@ -1039,7 +1039,7 @@ static void amt_send_mem_update( stream_t *p_access, char *relay_ip, bool leave)
 
     send( sys->sAMT, pSendBuffer, sizeof(pSendBuffer), 0 );
 
-    //msg_Dbg( p_access, "AMT relay membership report sent to %s", relay_ip );
+    //fprintf( stdout, "AMT relay membership report sent to %s", relay_ip );
 }
 
 /**
