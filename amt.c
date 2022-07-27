@@ -485,10 +485,10 @@ cleanup: /* fall through */
 /*****************************************************************************
  * Close: Cancel thread and free data structures
  *****************************************************************************/
-static void Close( vlc_object_t *p_this )
+static void Close()
 {
-    stream_t     *p_access = (stream_t*)p_this;
-    access_sys_t *sys = p_access->p_sys;
+    // stream_t     *p_access = (stream_t*)p_this;
+    access_sys_t *sys = &p_sys;
 
     // vlc_timer_destroy( sys->updateTimer ); TODO
 
@@ -1307,5 +1307,8 @@ int main(int argc, char *argv[]) {
     // group_addr = 232.162.250.138
     // src_addr = 162.250.138.201
     // 
+
+    // Setup the ports, sockets, etc
+    Setup()
     open_amt_tunnel()
 }
