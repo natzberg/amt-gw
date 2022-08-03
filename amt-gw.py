@@ -2,7 +2,7 @@ import socket
 import struct
 import sys
 from scapy.all import *
-import scapy.contrib.igmp
+from scapy.contrib.igmp import *
 from amt import *
 
 ################################################
@@ -75,11 +75,11 @@ DEFAULT_MTU = (1500 - (20 + 8))
 #     print(sys.stderr, 'closing socket')
 #     sock.close()
 
-ip_top_layer = IP(dst="172.16.27.135")
+ip_top_layer = IP(dst="192.168.1.1")
 igmp_layer = scapy.contrib.igmp.IGMP()
 udp_top_layer = UDP(sport=AMT_PORT, dport=AMT_PORT)
-amt_layer = AMT_Relay_Advertisement()
-mickey_layer = Disney()
+amt_layer = AMT_Membership_Update()
+igmp_layer = IGMP()
 # bind_layers(UDP, AMT_Discovery, dport=AMT_PORT)
 packet =  ip_top_layer / udp_top_layer / amt_layer
 # print(packet)
