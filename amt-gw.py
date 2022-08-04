@@ -2,18 +2,34 @@ import socket
 from unittest.mock import DEFAULT
 from urllib import request
 from scapy.all import *
-from scapy.contrib.igmp import *
+from scapy.contrib.igmpv3 import *
 from amt import *
 import secrets
+import time
+
+def amt_mem_update(nonce, response_mac, udp_port):
+    ip_layer = IP(dst="162.250.137.254")
+    udp_layer = UDP(sport=udp_port, dport=AMT_PORT)
+    amt_layer = AMT_Membership_Update()
+    amt_layer.setfieldval("nonce", nonce)
+    amt_layer.setfieldval("response_mac", response_mac)
+    options_pkt = Packet(b"\x00")       # add IP options to match working C implementation
+    ip_layer2 = IP(src="0.0.0.0", dst="224.0.0.22", options=[options_pkt])
+    igmp_layer = IGMPv3()
+    igmp_layer.type = 34        # {17: 'Membership Query', 34: 'Version 3 Membership Report', 48: 'Multicast Router Advertisement', 49: 'Multicast Router Solicitation', 50: 'Multicast Router Termination'}
+    igmp_layer2 = IGMPv3mr(records=[IGMPv3gr(maddr='232.198.38.1', srcaddrs=["198.38.23.146"])])
+    update = ip_layer / udp_layer / amt_layer / ip_layer2 / igmp_layer / igmp_layer2
+    update.show()
+    send(update)
 
 
 ip_top_layer = IP(dst="162.250.137.254")        #relay addr
-igmp_layer = scapy.contrib.igmp.IGMP()
-udp_top_layer = UDP(sport=AMT_PORT, dport=AMT_PORT)
+udp_rand_port = int(RandShort())
+print(udp_rand_port)
+udp_top_layer = UDP(sport=AMT_PORT ,dport=AMT_PORT)
 amt_layer = AMT_Discovery()
 nonce = secrets.token_bytes(4)
 amt_layer.setfieldval("nonce", nonce)
-igmp_layer = IGMP()
 # bind_layers(UDP, AMT_Discovery, dport=AMT_PORT)
 packet =  ip_top_layer / udp_top_layer / amt_layer
 # print(packet)
@@ -26,17 +42,24 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     data, addr = s.recvfrom(DEFAULT_MTU)
     relay_adv = AMT_Relay_Advertisement(data)   # convert raw packet to relay adv packet
     print(relay_adv.fields)                     # just checking, debug
-
+    
     # once we receive the packet, craft a relay request
     relay_request = AMT_Relay_Request()
     relay_request.setfieldval("nonce", nonce)   # keep same nonce!
+    udp_top_layer.sport = udp_rand_port
     request_pkt = ip_top_layer / udp_top_layer / relay_request
     p = send(request_pkt)
     data, addr = s.recvfrom(DEFAULT_MTU)        # receive the membership query
     print(data)
     membership_query = AMT_Membership_Query(data)
-    print(membership_query.fields)
+    response_mac = membership_query.response_mac
+    membership_query.show()
 
-    # received the membership query, now pull out the info we need
+    # received the membership query, send a membership update
+    amt_mem_update(nonce, response_mac, )
 
-            
+    while True:
+        # receive the multicast data!
+        data, addr = s.recvfrom(DEFAULT_MTU)        # receive the membership query
+        print(data)
+

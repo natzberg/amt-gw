@@ -77,10 +77,10 @@ class AMT_Membership_Query(Packet):
         BitField("rsvd1", 0, 6),
         BitField("l_flag", 0, 1),
         BitField("g_flag", 0, 1),
-        BitField("rsvd2", 0, 16),
         MACField("response_mac", 0),
         XStrFixedLenField("nonce", 0, 4),
         #encapsulated IGMPv3 or MLDv2, defaults to IGMP
+        PacketListField("amt_ip", None, IP),
         PacketListField("amt_igmpv3", None, scapy.contrib.igmpv3.IGMPv3)
         # BitField("igmp_mld_type", 0x11, 8),
         # ConditionalField(BitField("igmp_max_resp_code", 0, 8), lambda pkt: pkt.igmp_mld_type == 0x11 ),
@@ -107,21 +107,6 @@ class AMT_Membership_Query(Packet):
 """
 class AMT_Membership_Update(Packet):
     name = "AMT_Membership_Update"
-
-    igmptypes = {
-        0x11: "IGMP: Group Membership Query",
-        0x12: "IGMP: Version 1 - Membership Report",
-        0x16: "IGMP: Version 2 - Membership Report",
-        0x17: "IGMP: Leave Group"
-    }
-
-    # Currently not supported but here for future use
-    mldtypes = {
-        130: "MLD: Multicast Listener Query",
-        143: "MLD: Version 2 Multicast Listener Report",
-        131: "MLD: Version 1 Multicast Listener Report",
-        132: "MLD: Version 1 Multicast Listener Done"
-    }
 
     fields_desc = [
         BitField("version", 0, VERSION_LEN),
