@@ -9,14 +9,18 @@ import time
 
 ttl = 2
 
+use_multicast = true
+
 def send_data(buf):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     multicastIP = "239.0.0.1"
     multicastPort = 3000
     print("packet_size:", len(buf))
-    # sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    sock.sendto(buf, (multicastIP, multicastPort))
-    # sock.sendto(buf, ("127.0.0.1", 3000)) # (multicastIP, multicastPort))    
+    if use_multicast:
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+        sock.sendto(buf, (multicastIP, multicastPort))
+    else:
+        sock.sendto(buf, ("127.0.0.1", 3000)) 
 
 def amt_mem_update(nonce, response_mac):
     ip_layer = IP(dst="162.250.137.254")
