@@ -7,6 +7,17 @@ from amt import *
 import secrets
 import time
 
+ttl = 2
+
+def send_data(buf):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    multicastIP = "239.0.0.1"
+    multicastPort = 3000
+    print("packet_size:", len(buf))
+    # sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+    sock.sendto(buf, (multicastIP, multicastPort))
+    # sock.sendto(buf, ("127.0.0.1", 3000)) # (multicastIP, multicastPort))    
+
 def amt_mem_update(nonce, response_mac):
     ip_layer = IP(dst="162.250.137.254")
     udp_layer = UDP(sport=AMT_PORT, dport=AMT_PORT)
@@ -17,12 +28,16 @@ def amt_mem_update(nonce, response_mac):
     ip_layer2 = IP(src="0.0.0.0", dst="224.0.0.22", options=[options_pkt])
     igmp_layer = IGMPv3()
     igmp_layer.type = 34        # {17: 'Membership Query', 34: 'Version 3 Membership Report', 48: 'Multicast Router Advertisement', 49: 'Multicast Router Solicitation', 50: 'Multicast Router Termination'}
-    igmp_layer2 = IGMPv3mr(records=[IGMPv3gr(maddr='232.198.38.1', srcaddrs=["198.38.23.146"])])
+
+    # amt://162.250.138.201@232.162.250.140
+    
+    igmp_layer2 = IGMPv3mr(records=[IGMPv3gr(maddr='232.162.250.140', srcaddrs=["162.250.138.201"])])
     update = ip_layer / udp_layer / amt_layer / ip_layer2 / igmp_layer / igmp_layer2
     update.show()
     # send(update)
     return update
 
+# Get this IP by doing nslookup amt-relay.m2icast.net
 
 ip_top_layer = IP(dst="162.250.137.254")        #relay addr
 # udp_rand_port = RandShort()
@@ -64,9 +79,11 @@ s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, req)
 # s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, 1)
 update = amt_mem_update(nonce, response_mac)
 send(update)
-# while True:
+
+while True:
     # receive the multicast data!
-data, addr = s.recvfrom(DEFAULT_MTU)        # receive the membership query
-print(data)
-s.close()
+    data, addr = s.recvfrom(DEFAULT_MTU)        # receive the membership query
+    send_data(data)    
+    # print(data)
+    # s.close()
 

@@ -34,6 +34,7 @@ LOCAL_LOOPBACK = "127.0.0.1"
 AMT_PORT = 2268
 
 DEFAULT_MTU = (1500 - (20 + 8))
+# DEFAULT_MTU = 1600 # (1500 - (20 + 8))
 
 class AMT_Discovery(Packet):
     name = "AMT_Discovery"
