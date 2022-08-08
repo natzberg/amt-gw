@@ -9,18 +9,24 @@ import time
 
 ttl = 2
 
-use_multicast = true
+use_multicast = True
 
 def send_data(buf):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    multicastIP = "239.0.0.1"
-    multicastPort = 3000
-    print("packet_size:", len(buf))
-    if use_multicast:
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-        sock.sendto(buf, (multicastIP, multicastPort))
-    else:
-        sock.sendto(buf, ("127.0.0.1", 3000)) 
+    try: 
+        amt_packet = AMT_Multicast_Data(buf)
+        # print(amt_packet.show())
+        raw_udp = bytes(amt_packet[UDP].payload)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        multicastIP = "239.0.0.1"
+        multicastPort = 3000
+        print("packet_size:", len(buf))
+        if use_multicast:
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+            sock.sendto(raw_udp, (multicastIP, multicastPort))
+        else:
+            sock.sendto(buf, ("127.0.0.1", 3000))
+    except:
+        print("Error occurred in processing packet")
 
 def amt_mem_update(nonce, response_mac):
     ip_layer = IP(dst="162.250.137.254")
