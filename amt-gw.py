@@ -19,7 +19,7 @@ def send_data(buf):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         multicastIP = "239.0.0.1"
         multicastPort = 3000
-        print("packet_size:", len(buf))
+        print("packet_size:", len(raw_udp))
         if use_multicast:
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
             sock.sendto(raw_udp, (multicastIP, multicastPort))
